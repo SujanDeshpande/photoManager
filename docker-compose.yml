@@ -1,0 +1,102 @@
+version: '3'
+services:
+
+  mongo:
+    image: mongo
+    container_name: mongo-container
+    ports:
+      - "27017:27017"
+    volumes:
+      - /Users/sujandeshpande/mongo:/data/db
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: changeme
+      # Use single node discovery in order to disable production mode and avoid bootstrap checks.
+      # see: https://www.elastic.co/guide/en/elasticsearch/reference/current/bootstrap-checks.html
+      discovery.type: single-node
+    volumes:
+      - ./data/elasticsearch:/usr/share/elasticsearch/data
+
+  redis:
+        image: redis:latest
+        ports:
+            - 6379:6379
+        volumes:
+            - ./config/redis.conf:/redis.conf
+        command: [ "redis-server", "/redis.conf" ]
+
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=narvar
+      - POSTGRES_PASSWORD=narvar
+      - POSTGRES_DB=narvar
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      default:
+        aliases:
+          - postgres.narvar.local
+  yb-master:
+      image: yugabytedb/yugabyte:latest
+      container_name: yb-master-n1
+      volumes:
+      - yb-master-data-1:/mnt/master
+      command: [ "/home/yugabyte/bin/yb-master",
+                "--fs_data_dirs=/mnt/master",
+                "--master_addresses=yb-master-n1:7100",
+                "--rpc_bind_addresses=yb-master-n1:7100",
+                "--replication_factor=1"]
+      ports:
+      - "7000:7000"
+      environment:
+        SERVICE_7000_NAME: yb-master
+
+  yb-tserver:
+      image: yugabytedb/yugabyte:latest
+      container_name: yb-tserver-n1
+      volumes:
+      - yb-tserver-data-1:/mnt/tserver
+      command: [ "/home/yugabyte/bin/yb-tserver",
+                "--fs_data_dirs=/mnt/tserver",
+                "--start_pgsql_proxy",
+                "--rpc_bind_addresses=yb-tserver-n1:9100",
+                "--tserver_master_addrs=yb-master-n1:7100"]
+      ports:
+      - "9042:9042"
+      - "5433:5433"
+      - "9000:9000"
+      environment:
+        SERVICE_5433_NAME: ysql
+        SERVICE_9042_NAME: ycql
+        SERVICE_6379_NAME: yedis
+        SERVICE_9000_NAME: yb-tserver
+      depends_on:
+      - yb-master
+
+  pulsar-sa:
+    image: apachepulsar/pulsar
+    expose:
+      - 8080
+      - 6650
+    environment:
+      - BOOKIE_MEM=" -Xms512m -Xmx512m -XX:MaxDirectMemorySize=1g"
+    command: >
+      /bin/bash -c
+      "bin/apply-config-from-env.py conf/standalone.conf
+      && bin/pulsar standalone"
+
+volumes:
+  dbdata:
+  yb-master-data-1:
+  yb-tserver-data-1:
+  pulsardata:
+  pulsarconf:
