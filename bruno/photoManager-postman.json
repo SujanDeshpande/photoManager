@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "photoManager API Collection",
+    "description": "Complete API collection for the photoManager service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "photoManager"
+  },
+  "item": [
+    {
+      "name": "01 - Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/health",
+          "host": ["{{base_url}}"],
+          "path": ["api", "health"]
+        },
+        "description": "Returns server health status and version.\n\n**Response:**\n```json\n{\n  \"ok\": true,\n  \"version\": \"0.1.0\"\n}\n```"
+      },
+      "response": []
+    },
+    {
+      "name": "02 - List Incoming",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/incoming?offset=0&limit=50",
+          "host": ["{{base_url}}"],
+          "path": ["api", "incoming"],
+          "query": [
+            {
+              "key": "offset",
+              "value": "0",
+              "description": "Number of records to skip (default: 0)"
+            },
+            {
+              "key": "limit",
+              "value": "50",
+              "description": "Maximum number of records to return (default: 50, max: 500)"
+            }
+          ]
+        },
+        "description": "Returns a paginated list of files in the incoming table.\n\n**Query Parameters:**\n- `offset`: Number of records to skip\n- `limit`: Maximum number of records to return\n\n**Response:** Array of incoming file records with fields: `id`, `name`, `size`, `modifiedAt`, `srcPath`, `hash`, `copied`, `error`, `updatedAt`"
+      },
+      "response": []
+    },
+    {
+      "name": "03 - List Outcoming",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/outcoming?offset=0&limit=50",
+          "host": ["{{base_url}}"],
+          "path": ["api", "outcoming"],
+          "query": [
+            {
+              "key": "offset",
+              "value": "0",
+              "description": "Number of records to skip (default: 0)"
+            },
+            {
+              "key": "limit",
+              "value": "50",
+              "description": "Maximum number of records to return (default: 50, max: 500)"
+            }
+          ]
+        },
+        "description": "Returns a paginated list of files in the outcoming table (successfully copied files).\n\n**Query Parameters:**\n- `offset`: Number of records to skip\n- `limit`: Maximum number of records to return\n\n**Response:** Array of outcoming file records with fields: `id`, `name`, `size`, `modifiedAt`, `srcPath`, `destPath`, `copiedAt`, `metadata`, `thumbnailPath` (if available for image files)"
+      },
+      "response": []
+    },
+    {
+      "name": "04 - Get Outcoming by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/outcoming/1",
+          "host": ["{{base_url}}"],
+          "path": ["api", "outcoming", "1"]
+        },
+        "description": "Returns a single outcoming file record by its ID.\n\n**Path Parameters:**\n- `id`: Record ID (integer)\n\n**Response:** Single outcoming file record"
+      },
+      "response": []
+    },
+    {
+      "name": "05 - Scan Files",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"src\": \"/Users/sudeshpa/personal/photos/incoming\",\n  \"dest\": \"/Users/sudeshpa/personal/photos/outcoming\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/scan",
+          "host": ["{{base_url}}"],
+          "path": ["api", "scan"]
+        },
+        "description": "Initiates a file scan and copy operation from source to destination directory.\n\n**Request Body:**\n- `src` (string, optional): Source directory path\n- `dest` (string, optional): Destination directory path\n\n**Response (202 Accepted):**\n```json\n{\n  \"started\": true,\n  \"status\": \"completed\",\n  \"copied\": 10,\n  \"skipped\": 0,\n  \"failed\": 0\n}\n```\n\n**Notes:**\n- Returns HTTP 202 Accepted\n- Scan runs synchronously and returns results when complete\n- Only one scan can run at a time (returns 409 Conflict if already running)\n- Files are organized by year/month in the destination directory\n- Duplicate files (by hash) are automatically skipped"
+      },
+      "response": []
+    },
+    {
+      "name": "06 - Clear Database",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/clear",
+          "host": ["{{base_url}}"],
+          "path": ["api", "clear"]
+        },
+        "description": "Deletes all records from both incoming and outcoming tables.\n\n**Response:**\n```json\n{\n  \"ok\": true\n}\n```\n\n**Warning:** This operation is irreversible and will delete all file records from the database."
+      },
+      "response": []
+    },
+    {
+      "name": "07 - Get Thumbnail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/thumbnails/.thumbnails/2024/January/example.jpg",
+          "host": ["{{base_url}}"],
+          "path": ["api", "thumbnails", ".thumbnails", "2024", "January", "example.jpg"]
+        },
+        "description": "Serves a thumbnail image file.\n\n**Path Parameters:**\n- `path`: Relative path to the thumbnail file from the destination directory\n\n**Response:** Thumbnail image file with appropriate content-type header\n\n**Notes:**\n- Thumbnails are automatically generated for all image files\n- Path should be relative to the destination directory (e.g., `.thumbnails/2024/January/image.jpg`)\n- Returns 404 if thumbnail doesn't exist\n- Returns 403 if path traversal is detected\n- Images are cached for 1 hour\n- Supports: JPEG, PNG, GIF, WebP"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5179",
+      "type": "string",
+      "description": "Base URL for photoManager API server"
+    }
+  ]
+}
